@@ -78,31 +78,3 @@ class Node(object):
 			del self
 		else:
 			for c in self: c.recursiveDel()
-:
-			if self not in parent.getChildren(): parent.children.append(self)
-	def setChildren(self, *children):
-		for c in self: c.setParent(None)
-		self.children = list(children) or []
-		for c in children:
-			if self != c.getParent(): c.setParent(self)
-
-	def rename(self, name):
-		self.setName(name)
-	def resetParent(self):
-		self.setParent()
-	def resetChildren(self):
-		self.setChildren()
-
-	def addChildren(self, *children):
-		for c in children:
-			if c not in self.children: self.children.append(children)
-			c.setParent(self)
-	def removeChildren(self, *children):
-		for c in children: c.setParent(None)
-		self.children = [n for n in self if n not in children]
-
-	def recursiveDel(self):
-		if self.isLeaf():
-			del self
-		else:
-			for c in self: c.recursiveDel()

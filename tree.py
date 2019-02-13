@@ -1,10 +1,10 @@
 class Node(object):
-	_instances = -1
+	_instances_ = -1
 	def __init__(self, parent, *children):
-		self._parent = parent
+		self._parent_ = parent
 		parent.children.append(self)
-		self._setChildren(*children)
-		Node._instances += 1
+		self._setChildren_(*children)
+		Node._instances_ += 1
 
 	def __getattr__(self, attr):
 		if attr in {"degree", "valency"}: return self.getDegree()
@@ -21,7 +21,7 @@ class Node(object):
 		self.removeChildren(self.getChild(key))
 		if node not in self.children: self.children.insert(key, node)
 		else: raise ValueError("Cannot have a node child several times!")
-		node._setParent(self)
+		node._setParent_(self)
 	def __delitem__(self, key: int):
 		del self[key]
 	def __contains__(self, node):
@@ -32,8 +32,8 @@ class Node(object):
 	def __len__(self):
 		return len(self.children)
 	def __del__(self):
-		self._resetParent()
-		self._resetChildren()
+		self._resetParent_()
+		self._resetChildren_()
 	def __add__(self, node):
 		return self.addChildren(node)
 	def __sub__(self, node):
@@ -45,25 +45,25 @@ class Node(object):
 
 
 	def clsInstances(cls):
-		return Node._instances
+		return Node._instances_
 
-	def _getParent(self):
-		return self._parent
-	def _getChildren(self):
-		return self._children
+	def _getParent_(self):
+		return self._parent_
+	def _getChildren_(self):
+		return self._children_
 
-	def _setParent(self, node):
-		self._parent.children.remove(self)
-		self._parent = node
-		node._children += self
-	def _setChildren(self, *nodes):
-		for c in self.children: c._setParent(orphanage)
-		self._children = list(nodes) or []
-		for n in nodes: n._setParent(self)
+	def _setParent_(self, node):
+		self._parent_.children.remove(self)
+		self._parent_ = node
+		node._children_ += self
+	def _setChildren_(self, *nodes):
+		for c in self.children: c._setParent_(orphanage)
+		self._children_ = list(nodes) or []
+		for n in nodes: n._setParent_(self)
 
-	def _resetParent(self):
+	def _resetParent_(self):
 		self.parent = orphanage
-	def _resetChildren(self):
+	def _resetChildren_(self):
 		self.children = []
 
 
@@ -153,17 +153,17 @@ class Node(object):
 
 	clsInstances = classmethod(clsInstances)
 
-	parent = property(_getParent, _setParent, _resetParent)
-	children = property(_getChildren, _setChildren, _resetChildren)
+	parent = property(_getParent_, _setParent_, _resetParent_)
+	children = property(_getChildren_, _setChildren_, _resetChildren_)
 
 
 
 class Root(Node):
-	_instances = -1
+	_instances_ = -1
 	def __init__(self, name=None, *children):
 		Node.__init__(self, None, *children)
 		self._name = f"<{name}>" if name else f"<r{Root._instances}>"
-		Root._instances += 1
+		Root._instances_ += 1
 	def __getattr__(self, attr):
 		if attr is "path": return self.name
 		elif attr in {"degree", "valency"}: return self.getDegree()
@@ -178,10 +178,10 @@ class Root(Node):
 	def clsInstances(cls):
 		return Root._instances
 
-	def _getName(self):
-		return self._name
-	def _setName(self, name):
-		self._name = f"<{name}>"
+	def _getName_(self):
+		return self._name_
+	def _setName_(self, name):
+		self._name_ = f"<{name}>"
 
 	def getPath(self):
 		return self.name
@@ -199,4 +199,4 @@ class Root(Node):
 		return False
 
 	clsInstances = classmethod(clsInstances)
-	name = property(_getName)
+	name = property(_getName_, _setName_)

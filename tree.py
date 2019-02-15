@@ -15,13 +15,13 @@ class Node(object):
 		elif attr is "root": return self.getRoot()
 		elif attr is "progeny": return self.getProgeny()
 		elif attr is "leaves": return self.getLeaves()
-		else: raise AttributeError("No such attribute for Node instances exists")
+		else: raise AttributeError(f"Attribute \"{attr}\" not found for Node instances")
 	def __getitem__(self, key: int):
 		return self.children[key]
 	def __setitem__(self, key: int, node):
 		self.removeChildren(self.getChild(key))
 		if node not in self.children: self.children.insert(key, node)
-		else: raise ValueError("Cannot have a node child several times!")
+		else: raise ValueError("Cannot contains the same node several times")
 		node._setParent_(self)
 	def __contains__(self, node):
 		return node in self.children
@@ -86,23 +86,30 @@ class Node(object):
 		return ptr
 	def getProgeny(self):
 		progeny = self.children
-		while not all(p.isParent() for p in progeny):
-			progeny.extend([p for p in progeny if p.isParent()])
-		return sorted(progeny)
+		ptrs = self.children
+		while not all(n.isLeaf() for n in ptrs):
+			children = []
+			for n in ptrs:
+				for i in range(len(n)): children.append(n[i])
+			progeny.extend(children)
+			ptrs = children
+		return sorted(progeny, key=lambda node: node.path)
 	def getLeaves(self):
-		return sorted([p for p in self.progeny if p.path.count(".") == self.depth])
+		return sorted([p for p in self.progeny if p.path.count(".") == self.depth], key=lambda node: node.path)
 
 	def setParent(self, node):
 		self._setParent_(node)
 	def setChildren(self, *nodes):
 		self._setChildren_(*nodes)
 
-	def cut(self):
+	def cutBefore(self):
 		self._setParent_(orph)
-	def resetParent(self):
-		self.cut()
-	def resetChildren(self):
+	def cutAfter(self):
 		self._setChildren_()
+	def resetParent(self):
+		self.cutBefore()
+	def resetChildren(self):
+		self.cutAfter()
 
 	def totalProgeny(self):
 		return len(self.progeny)
@@ -127,9 +134,7 @@ class Node(object):
 	def displayProgeny(self):
 		print(self.path)
 		for p in self.progeny:
-			print("\t" * (p.path.count(".") - self.path.count(".")) + ("├───" if p is p.parent.child[-1] else "└───") + p.path)
-
-
+			print("  " + "\t" * 3 * (p.path.count(".") - self.path.count(".") - 1) + ("└───" if p is p.parent.children[-1] else "├───") + p.path)
 	def displayLeaves(self):
 		print(self)
 	def displayTree(self):
@@ -169,14 +174,12 @@ class Node(object):
 	children = property(_getChildren_, _setChildren_)
 
 
-
 class Root(Node):
 	_instances_ = -1
 	def __init__(self, name=None, *children):
 		Node.__init__(self, None, *children)
 		self._name_ = f"<{name}>" if name else f"<r{Root._instances_}>"
 		Root._instances_ += 1
-
 	def __getattr__(self, attr):
 		if attr is "path": return self.name
 		elif attr in {"degree", "valency"}: return self.getDegree()
@@ -185,18 +188,21 @@ class Root(Node):
 		elif attr is "root": return self.getRoot()
 		elif attr is "progeny": return self.getProgeny()
 		elif attr is "leaves": return self.getLeaves()
-		else: raise AttributeError("No such attribute for Root instances exists")
+		else: raise AttributeError(f"Attribute \"{attr}\" not found for Root instances")
+
 
 	def clsInstances(cls):
-		return Root._instances
+		return Root._instances_
 
 	def _getName_(self):
 		return self._name_
-	
+
 	def _setName_(self, name):
 		self._name_ = f"<{name}>"
-	def _setParent_(self, node):
+	def _setParent_(self, node=None):
+		if node is not None: raise ValueError("Root instances cannot have a parent, it must be None")
 		pass
+
 
 	def getName(self):
 		self._getName_()
@@ -207,15 +213,20 @@ class Root(Node):
 	def getRoot(self):
 		return self
 
+	def setName(self, name):
+		self._setName_(name)
+
 	def displayRoot(self):
 		print(self)
 	def displayParent(self):
-		pass
+		print("╳\n └───" + self.name)
 
 	def isChild(self, parent=None):
 		return False
 
+
 	clsInstances = classmethod(clsInstances)
 	name = property(_getName_, _setName_)
+
 
 orph = Root("orph")

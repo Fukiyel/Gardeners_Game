@@ -14,7 +14,7 @@ class Node(object):
 			elif attr is "progeny": return self.getProgeny()
 			elif attr is "siblings": return self.getSiblings()
 			elif attr is "niblings": return self.getNiblings()
-			elif attr is "piblings": self.getPiblings()
+			elif attr is "piblings": return self.getPiblings()
 			elif attr is "cousins": return self.getCousins()
 			elif attr is "degree": return self.getDegree()
 			elif attr is "height": return self.getHeight()

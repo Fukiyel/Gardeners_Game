@@ -65,8 +65,13 @@ class Node(object):
 		return self._parent_
 	def getChildren(self):
 		return self._children_
-	def getAncestors(self): # TODO: write method
-		pass
+	def getAncestors(self):
+		ancestors = []
+		ptr = self
+		while not ptr.isRoot():
+			ancestors.append(ptr.parent)
+			ptr = self.parent
+		return sorted(ptr, key=lambda node: node.path)
 	def getProgeny(self):
 		progeny = self.children
 		ptrs = self.children
@@ -117,7 +122,7 @@ class Node(object):
 		self._parent_ = node
 		node._children_.append(self)
 	def setChildren(self, *nodes):
-		for c in self.children: c.setParent(orph)
+		for c in self._children_: c.setParent(orph)
 		self._children_ = list(nodes) or []
 		for n in nodes: n.setParent(self)
 	def setStruct(self, struct: list):  # TODO: write method
@@ -346,7 +351,7 @@ class Orph(Root):
 		self._name_ = f"<{name}>"  if name is not None else f"<orph{Orph._instances_}>"
 		Orph._instances_ += 1
 	def __getattr__(self, attr):
-		try: self.Root.__getattr__(attr)
+		try: return Root.__getattr__(self, attr)
 		except AttributeError:
 			raise AttributeError(f"Attribute \"{attr}\" not found for Orph instance")
 
@@ -354,4 +359,4 @@ class Orph(Root):
 		return Orph._instances_
 
 
-orph = Orph()
+orph = Orph("orph")

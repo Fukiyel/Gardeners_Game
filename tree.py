@@ -9,7 +9,6 @@ class Node(object):
 
 	def __getattr__(self, attr):
 			if attr is "path": return self.getPath()
-			elif attr is "struct": return self.getStruct()
 			elif attr is "ancestors": return self.getAncestors()
 			elif attr is "progeny": return self.getProgeny()
 			elif attr is "siblings": return self.getSiblings()
@@ -22,7 +21,6 @@ class Node(object):
 			elif attr is "root": return self.getRoot()
 			elif attr is "leaves": return self.getLeaves()
 			elif attr is "tree_name": return self.getTreeName()
-			elif attr is "tree_struct": return self.getTreeStruct()
 			elif attr is "tree_nodes": return self.getTreeNodes()
 			elif attr is "tree_leaves": return self.getTreeLeaves()
 			else: raise AttributeError(f"Attribute \"{attr}\" not found for Node instance")
@@ -59,8 +57,6 @@ class Node(object):
 			path = f".{ptr.parent.children.index(ptr)}" + path
 			ptr = ptr.parent
 		return ptr.name + path
-	def getStruct(self): # TODO: write method
-		pass
 	def getParent(self):
 		return self._parent_
 	def getChildren(self):
@@ -110,8 +106,6 @@ class Node(object):
 		return sorted([p for p in self.progeny if p.path.count(".") == self.depth], key=lambda node: node.path)
 	def getTreeName(self):
 		return "tree" + self.root.name
-	def getTreeStruct(self):
-		return self.root.struct
 	def getTreeNodes(self):
 		return self.root.progeny + self.root
 	def getTreeLeaves(self):
@@ -125,8 +119,6 @@ class Node(object):
 		for c in self._children_: c.setParent(orph)
 		self._children_ = list(nodes) or []
 		for n in nodes: n.setParent(self)
-	def setStruct(self, struct: list):  # TODO: write method
-		pass
 
 	def resetParent(self):
 		self.cutBefore()
@@ -162,8 +154,6 @@ class Node(object):
 
 	def display(self):
 		print(self)
-	def displayStruct(self): # TODO: write method
-		pass
 	def displayParent(self):
 		print(self.parent.path)
 		print("└───" + self.path)
@@ -193,8 +183,6 @@ class Node(object):
 		print(self)
 	def displayTree(self):
 		self.root.displayProgeny()
-	def displayTreeStruct(self):
-		self.root.displayStruct()
 	def displayTreeLeaves(self):
 		self.root.displayLeaves()
 
@@ -273,12 +261,6 @@ class Node(object):
 	def removeChildren(self, *children):
 		new_children = [c for c in self.children if c not in children]
 		self.setChildren(*new_children)
-	def extendStruct(self, struct: list): # TODO: write method
-		pass
-	def shrinkStruct(self, struct: list): # TODO: write method
-		pass
-	def restrainStruct(self, struct: list): # TODO: write method
-		pass
 
 	clsInstances = classmethod(clsInstances)
 
@@ -294,15 +276,13 @@ class Root(Node):
 		Root._instances_ += 1
 	def __getattr__(self, attr):
 		if attr is "path": return self.name
-		elif attr is "struct": return self.getStruct()
-		elif attr in {"progeny", "descendants"}: return self.getProgeny()
-		elif attr in {"degree", "valency"}: return self.getDegree()
+		elif attr is "progeny": return self.getProgeny()
+		elif attr is "degree": return self.getDegree()
 		elif attr is "height": return self.getHeight()
 		elif attr is "depth": return self.getDepth()
 		elif attr is "root": return self.getRoot()
 		elif attr is "leaves": return self.getLeaves()
 		elif attr is "tree_name": return self.getName()
-		elif attr is "tree_struct": return self.getStruct()
 		elif attr is "tree_nodes": return self.getNodes()
 		elif attr is "tree_leaves": return self.getLeaves()
 		else: raise AttributeError(f"Attribute \"{attr}\" not found for Root instance")

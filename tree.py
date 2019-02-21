@@ -1,10 +1,14 @@
 class Node(object):
 	_instances_ = -1
 	def __init__(self, parent, *children):
+		if parent is not None and not isinstance(parent, Node):
+			raise TypeError("Parent argument must be of Node type")
 		self._parent_ = parent
 		self._children_ = list(children) or []
 		if parent is not None: parent.children.append(self)
-		for n in children: n.setParent(self)
+		for n in children:
+			if not isinstance(n, Node): raise TypeError("Children arguments must be of Node type")
+			n.setParent(self)
 		Node._instances_ += 1
 
 	def __getattr__(self, attr):
@@ -28,18 +32,25 @@ class Node(object):
 		else: raise ValueError("Cannot contains the same node several times")
 		node.setParent(self)
 	def __contains__(self, node):
-		return node in self.children
+		if isinstance(node, Node): return node in self.children
+		raise TypeError("Can only check for a type Node object in a Node instance")
 
 	def __str__(self):
 		return self.getPath()
 	def __len__(self):
 		return len(self.children)
-	def __add__(self, node):
-		return self.addChildren(node)
+	def __add__(self, val):
+		if isinstance(val, Node): return self.addChildren(val)
+		elif isinstance(val, int): return self.growNodes(val)
+		elif isinstance(val, list): return self.expandStruct(val)
+		else: raise TypeError("Can only add object of type int, list or Node to a Node instance.")
 	def __sub__(self, node):
 		return self.removeChildren(node)
-	def __iadd__(self, node):
-		self.addChildren(node)
+	def __iadd__(self, val):
+		if isinstance(val, Node): self.addChildren(val)
+		elif isinstance(val, int): self.growNodes(val)
+		elif isinstance(val, list): self.expandStruct(val)
+		else: raise TypeError("Can only iadd object of type int, list or Node to a Node instance.")
 	def __isub__(self, node):
 		self.removeChildren(node)
 
@@ -102,6 +113,8 @@ class Node(object):
 		return sorted([p for p in self.progeny if p.path.count(".") == self.depth], key=lambda node: node.path)
 
 	def setParent(self, node):
+		if not isinstance(node, Node): raise TypeError("Parent of a Node instance must also be of type Node")
+		elif node in self.progeny: raise ValueError("A node's parent cannot be among its progeny")
 		self._parent_.children.remove(self)
 		self._parent_ = node
 		node._children_.append(self)
@@ -111,9 +124,12 @@ class Node(object):
 		for n in nodes: n.setParent(self)
 	def setStruct(self, struct: list):
 		self.cutAfter()
-		for i in range(len(struct)):
-			Node(self)
-			self[i].setStruct(struct[i])
+		try:
+			for i in range(len(struct)):
+				Node(self)
+				self[i].setStruct(struct[i])
+		except TypeError:
+			raise TypeError("A structure must be only composed of empty multidimensional lists")
 
 	def resetParent(self):
 		self.cutBefore()
@@ -224,7 +240,7 @@ class Node(object):
 	def cutAfter(self):
 		self.setChildren()
 
-	def growChildren(self, count: int):
+	def growNodes(self, count: int):
 		for _ in range(count): Node(self)
 
 	def addChildren(self, *nodes):

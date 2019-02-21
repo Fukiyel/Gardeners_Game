@@ -1,6 +1,3 @@
-def multidim_accessor(multilist: list, *indexes: int):
-	return multilist if not len(indexes) else multidim_accessor(multilist[indexes[0]], *indexes[1:])
-
 class Node(object):
 	_instances_ = -1
 	def __init__(self, parent, *children):
@@ -14,21 +11,14 @@ class Node(object):
 			if attr in {"path", "name"}: return self.getPath()
 			elif attr is "indexes": return self.getIndexes()
 			elif attr is "struct": return self.getStruct()
+			elif attr is "siblings": return self.getSiblings()
 			elif attr is "ancestors": return self.getAncestors()
 			elif attr is "progeny": return self.getProgeny()
-			elif attr is "siblings": return self.getSiblings()
-			elif attr is "niblings": return self.getNiblings()
-			elif attr is "piblings": return self.getPiblings()
-			elif attr is "cousins": return self.getCousins()
 			elif attr is "degree": return self.getDegree()
 			elif attr is "height": return self.getHeight()
 			elif attr is "depth": return self.getDepth()
 			elif attr is "root": return self.getRoot()
 			elif attr is "leaves": return self.getLeaves()
-			elif attr is "tree_name": return self.getTreeName()
-			elif attr is "tree_struct": return self.getTreeStruct()
-			elif attr is "tree_nodes": return self.getTreeNodes()
-			elif attr is "tree_leaves": return self.getTreeLeaves()
 			else: raise AttributeError(f"Attribute \"{attr}\" not found for Node instance")
 	def __getitem__(self, key: int):
 		return self.children[key]
@@ -119,8 +109,11 @@ class Node(object):
 		for c in self._children_: c.setParent(orph)
 		self._children_ = list(nodes) or []
 		for n in nodes: n.setParent(self)
-	def setStruct(self, struct: list):  # TODO: write method
-		pass
+	def setStruct(self, struct: list):
+		self.cutAfter()
+		for i in range(len(struct)):
+			Node(self)
+			self[i].setStruct(struct[i])
 
 	def resetParent(self):
 		self.cutBefore()
@@ -226,12 +219,13 @@ class Node(object):
 		for p in progeny: results.append(p in self.progeny)
 		return False not in results and not self.isLeaf()
 
-	def grow(self, count: int):
-		for _ in range(count): Node(self)
 	def cutBefore(self):
 		self.setParent(orph)
 	def cutAfter(self):
 		self.setChildren()
+
+	def growChildren(self, count: int):
+		for _ in range(count): Node(self)
 
 	def addChildren(self, *nodes):
 		self.setChildren(*self.children, *nodes)
@@ -239,11 +233,11 @@ class Node(object):
 		new_children = [c for c in self.children if c not in children]
 		self.setChildren(*new_children)
 
-	def extend(self, struct: list): # TODO: write method
+	def expandStruct(self, struct: list):
+		self.setStruct(self.struct + [struct])
+	def shrinkStruct(self, struct: list): # TODO: write method
 		pass
-	def shrink(self, struct: list): # TODO: write method
-		pass
-	def restrain(self, struct: list): # TODO: write method
+	def restrictStruct(self, struct: list): # TODO: write method
 		pass
 
 	clsInstances = classmethod(clsInstances)
@@ -324,6 +318,10 @@ class Orph(Root):
 
 	def clsInstances(cls):
 		return Orph._instances_
+
+
+def multidim_accessor(multilist: list, *indexes: int):
+	return multilist if not len(indexes) else multidim_accessor(multilist[indexes[0]], *indexes[1:])
 
 
 orph = Orph("orph")

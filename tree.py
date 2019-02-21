@@ -1,3 +1,6 @@
+def multidim_accessor(multilist: list, *indexes: int):
+	return multilist if not len(indexes) else multidim_accessor(multilist[indexes[0]], *indexes[1:])
+
 class Node(object):
 	_instances_ = -1
 	def __init__(self, parent, *children):
@@ -8,7 +11,8 @@ class Node(object):
 		Node._instances_ += 1
 
 	def __getattr__(self, attr):
-			if attr is "path": return self.getPath()
+			if attr in {"path", "name"}: return self.getPath()
+			elif attr is "indexes": return self.getIndexes()
 			elif attr is "struct": return self.getStruct()
 			elif attr is "ancestors": return self.getAncestors()
 			elif attr is "progeny": return self.getProgeny()
@@ -59,12 +63,22 @@ class Node(object):
 			path = f".{ptr.parent.children.index(ptr)}" + path
 			ptr = ptr.parent
 		return ptr.name + path
-	def getStruct(self): # TODO: write method
-		pass
+	def getName(self):
+		return self.path
+	def getIndexes(self):
+		indexes = self.name[self.name.rfind(">.") + 2:].split(".")
+		for i in range(len(indexes)): indexes[i] = int(indexes[i])
+		return tuple(indexes)
+	def getStruct(self):
+		struct = []
+		for p in self.progeny: multidim_accessor(struct, *p.indexes[:-1]).append([])
+		return struct
 	def getParent(self):
 		return self._parent_
 	def getChildren(self):
 		return self._children_
+	def getSiblings(self):
+		return sorted([s for s in self.parent.children if s is not self], key=lambda node: node.path)
 	def getAncestors(self):
 		ancestors = []
 		ptr = self
@@ -81,19 +95,7 @@ class Node(object):
 				for i in range(len(n)): children.append(n[i])
 			progeny.extend(children)
 			ptrs = children
-		return sorted(progeny, key=lambda node: node.path)
-	def getSiblings(self):
-		return sorted([s for s in self.parent.children if s is not self], key=lambda node: node.path)
-	def getNiblings(self):
-		niblings = []
-		for s in self.getSiblings(): niblings.extend(s.children)
-		return sorted(niblings)
-	def getPiblings(self):
-		return sorted([p for p in self.parent.parent.children if p is not self.parent], key=lambda node: node.path)
-	def getCousins(self):
-		cousins = []
-		for p in self.getPiblings(): cousins.extend(p.children)
-		return sorted(cousins, key=lambda node: node.path)
+		return sorted(list(set(progeny)), key=lambda node: node.path)
 	def getDegree(self):
 		return len(self)
 	def getHeight(self):
@@ -108,14 +110,6 @@ class Node(object):
 		return ptr
 	def getLeaves(self):
 		return sorted([p for p in self.progeny if p.path.count(".") == self.depth], key=lambda node: node.path)
-	def getTreeName(self):
-		return "tree" + self.root.name
-	def getTreeStruct(self):
-		return self.root.struct
-	def getTreeNodes(self):
-		return self.root.progeny + self.root
-	def getTreeLeaves(self):
-		return self.root.leaves
 
 	def setParent(self, node):
 		self._parent_.children.remove(self)
@@ -132,36 +126,22 @@ class Node(object):
 		self.cutBefore()
 	def resetChildren(self):
 		self.cutAfter()
-	def cutBefore(self):
-		self.setParent(orph)
-	def cutAfter(self):
-		self.setChildren()
 
 	def totalChildren(self):
 		return len(self)
+	def totalSiblings(self):
+		return len(self.siblings)
 	def totalAncestors(self):
 		return len(self.ancestors)
 	def totalProgeny(self):
 		return len(self.progeny)
-	def totalSiblings(self):
-		return len(self.siblings)
-	def totalNiblings(self):
-		return len(self.niblings)
-	def totalPiblings(self):
-		return len(self.piblings)
-	def totalCousins(self):
-		return len(self.cousins)
 	def totalLeaves(self):
 		return len(self.leaves)
-	def totalTreeNodes(self):
-		return len(self.tree_nodes)
-	def totalTreeLeaves(self):
-		return len(self.tree_leaves)
 	def totalPossibleCuts(self):
 		return self.totalProgeny() - 1
 
-	def display(self):
-		print(self)
+	def display(self, tabs=3):
+		self.displayProgeny(tabs)
 	def displayStruct(self): # TODO: write method
 		pass
 	def displayParent(self):
@@ -174,35 +154,25 @@ class Node(object):
 			print("└───" + self[-1].path)
 		else:
 			print("\t└───╳")
-	def displayAncestors(self): # TODO: write method
+	def displaySiblings(self):
+		self.parent.displayChildren()
+	def displayAncestors(self, tabs=3):
 		depth = 0
 		print(self.root)
 		for a in self.ancestors[1:] + [self]:
-			print("\t" + "\t\t\t" * depth + "└───" + a.path)
+			print("\t" + "\t" * tabs * depth + "└───" + a.path)
 			depth += 1
-	def displayProgeny(self): # TODO: upgrade method
+	def displayProgeny(self, tabs=3): # TODO: upgrade method
 		print(self.path)
 		for p in self.progeny:
-			print(" \t" + "\t\t\t" * (p.path.count(".") - self.path.count(".") - 1) + ("└───" if p is p.parent.children[-1] else "├───") + p.path)
-	def displaySiblings(self):
-		self.parent.displayChildren()
-	def displayNiblings(self): # TODO: write method
-		pass
-	def displayPiblings(self): # TODO: write method
-		pass
-	def displayCousins(self): # TODO: write method
-		pass
+			print(" \t" + "\t" * tabs * (p.path.count(".") - self.path.count(".") - 1) + ("└───" if p is p.parent.children[-1] else "├───") + p.path)
 	def displayRoot(self):
 		print(self.root.path)
 		print("\t┊\n\t└───" + self.path)
 	def displayLeaves(self): # TODO: continue method
 		print(self)
-	def displayTree(self):
-		self.root.displayProgeny()
-	def displayTreeStruct(self):
-		self.root.displayStruct()
-	def displayTreeLeaves(self):
-		self.root.displayLeaves()
+	def displayTree(self, tabs=3):
+		self.root.displayProgeny(tabs)
 
 	def isRoot(self):
 		return isinstance(self, Root)
@@ -237,6 +207,12 @@ class Node(object):
 		if max is not None: results.append(len(self.children) <= max)
 		results.append(self.isParent(*children))
 		return False not in results
+	def hasSiblings(self, min=None, max=None, *siblings):
+		results = []
+		if min is not None: results.append(len(self.siblings) >= min)
+		if max is not None: results.append(len(self.siblings) <= max)
+		for s in siblings: results.append(s in self.siblings)
+		return False not in results and self.siblings
 	def hasAncestors(self, min=None, max=None, *ancestors):
 		results = []
 		if min is not None: results.append(len(self.ancestors) >= min)
@@ -249,41 +225,25 @@ class Node(object):
 		if max is not None: results.append(len(self.progeny) <= max)
 		for p in progeny: results.append(p in self.progeny)
 		return False not in results and not self.isLeaf()
-	def hasSiblings(self, min=None, max=None, *siblings):
-		results = []
-		if min is not None: results.append(len(self.siblings) >= min)
-		if max is not None: results.append(len(self.siblings) <= max)
-		for s in siblings: results.append(s in self.siblings)
-		return False not in results and self.siblings
-	def hasNiblings(self, min=None, max=None, *niblings):
-		results = []
-		if min is not None: results.append(len(self.niblings) >= min)
-		if max is not None: results.append(len(self.niblings) <= max)
-		for n in niblings: results.append(n in self.niblings)
-		return False not in results and self.niblings
-	def hasPiblings(self, min=None, max=None, *piblings):
-		results = []
-		if min is not None: results.append(len(self.piblings) >= min)
-		if max is not None: results.append(len(self.piblings) <= max)
-		for p in piblings: results.append(p in self.piblings)
-		return False not in results and self.piblings
-	def hasCousins(self, min=None, max=None, *cousins):
-		results = []
-		if min is not None: results.append(len(self.cousins) >= min)
-		if max is not None: results.append(len(self.cousins) <= max)
-		for c in cousins: results.append(c in self.cousins)
-		return False not in results and self.cousins
+
+	def grow(self, count: int):
+		for _ in range(count): Node(self)
+	def cutBefore(self):
+		self.setParent(orph)
+	def cutAfter(self):
+		self.setChildren()
 
 	def addChildren(self, *nodes):
 		self.setChildren(*self.children, *nodes)
 	def removeChildren(self, *children):
 		new_children = [c for c in self.children if c not in children]
 		self.setChildren(*new_children)
-	def extendStruct(self, struct: list): # TODO: write method
+
+	def extend(self, struct: list): # TODO: write method
 		pass
-	def shrinkStruct(self, struct: list): # TODO: write method
+	def shrink(self, struct: list): # TODO: write method
 		pass
-	def restrainStruct(self, struct: list): # TODO: write method
+	def restrain(self, struct: list): # TODO: write method
 		pass
 
 	clsInstances = classmethod(clsInstances)
@@ -320,13 +280,14 @@ class Root(Node):
 		return self._name_
 	def getPath(self):
 		return self.name
+	def getIndexes(self):
+		return []
 	def getHeight(self):
 		return 0
 	def getRoot(self):
 		return self
 	def getNodes(self):
 		return self.getProgeny()
-
 
 	def totalNodes(self):
 		return self.totalTreeNodes()

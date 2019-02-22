@@ -1,14 +1,12 @@
 class Node(object):
 	_instances_ = -1
 	def __init__(self, parent, *children):
-		if parent is not None and not isinstance(parent, Node):
-			raise TypeError("Parent argument must be of Node type")
+		if not isinstance(parent, (Node, type(None))): raise TypeError(f"Parent arg must be of type Node, not {type(parent).__name__}")
+		if not all(isinstance(c, Node) for c in children): raise TypeError("Children *args must be of type Node")
 		self._parent_ = parent
 		self._children_ = list(children) or []
 		if parent is not None: parent.children.append(self)
-		for n in children:
-			if not isinstance(n, Node): raise TypeError("Children arguments must be of Node type")
-			n.setParent(self)
+		for n in children: n.setParent(self)
 		Node._instances_ += 1
 
 	def __getattr__(self, attr):
@@ -24,35 +22,19 @@ class Node(object):
 			elif attr is "root": return self.getRoot()
 			elif attr is "leaves": return self.getLeaves()
 			else: raise AttributeError(f"Attribute \"{attr}\" not found for Node instance")
-	def __getitem__(self, key: int):
-		return self.children[key]
-	def __setitem__(self, key: int, node):
-		self.removeChildren(self.getChild(key))
-		if node not in self.children: self.children.insert(key, node)
-		else: raise ValueError("Cannot contains the same node several times")
-		node.setParent(self)
+	def __getitem__(self, index: int):
+		if isinstance(index, int):
+			try: return self.children[index]
+			except IndexError: raise IndexError(f"Child out of range, must be here between {-len(self)} and {len(self) - 1}")
+		else: raise TypeError(f"Node indexes must be of type int, not {type(index).__name__}")
 	def __contains__(self, node):
 		if isinstance(node, Node): return node in self.children
-		raise TypeError("Can only check for a type Node object in a Node instance")
+		raise TypeError(f"Cannot check for a type {type(node).__name__} object in a Node instance, only type Node")
 
 	def __str__(self):
 		return self.getPath()
 	def __len__(self):
 		return len(self.children)
-	def __add__(self, val):
-		if isinstance(val, Node): return self.addChildren(val)
-		elif isinstance(val, int): return self.growNodes(val)
-		elif isinstance(val, list): return self.expandStruct(val)
-		else: raise TypeError("Can only add object of type int, list or Node to a Node instance.")
-	def __sub__(self, node):
-		return self.removeChildren(node)
-	def __iadd__(self, val):
-		if isinstance(val, Node): self.addChildren(val)
-		elif isinstance(val, int): self.growNodes(val)
-		elif isinstance(val, list): self.expandStruct(val)
-		else: raise TypeError("Can only iadd object of type int, list or Node to a Node instance.")
-	def __isub__(self, node):
-		self.removeChildren(node)
 
 	def clsInstances(cls):
 		return Node._instances_
@@ -113,12 +95,13 @@ class Node(object):
 		return sorted([p for p in self.progeny if p.path.count(".") == self.depth], key=lambda node: node.path)
 
 	def setParent(self, node):
-		if not isinstance(node, Node): raise TypeError("Parent of a Node instance must also be of type Node")
+		if not isinstance(node, Node): raise TypeError(f"Parent of a Node instance must also be of type Node, not {type(node).__name__}")
 		elif node in self.progeny: raise ValueError("A node's parent cannot be among its progeny")
 		self._parent_.children.remove(self)
 		self._parent_ = node
 		node._children_.append(self)
 	def setChildren(self, *nodes):
+		if not all(isinstance(n, Node) for n in nodes): raise TypeError("Children *args must be of type Node")
 		for c in self._children_: c.setParent(orph)
 		self._children_ = list(nodes) or []
 		for n in nodes: n.setParent(self)
@@ -128,8 +111,7 @@ class Node(object):
 			for i in range(len(struct)):
 				Node(self)
 				self[i].setStruct(struct[i])
-		except TypeError:
-			raise TypeError("A structure must be only composed of empty multidimensional lists")
+		except TypeError: raise TypeError("A structure must be only composed of empty multidimensional lists")
 
 	def resetParent(self):
 		self.cutBefore()
@@ -240,7 +222,7 @@ class Node(object):
 	def cutAfter(self):
 		self.setChildren()
 
-	def growNodes(self, count: int):
+	def grow(self, count: int):
 		for _ in range(count): Node(self)
 
 	def addChildren(self, *nodes):
@@ -252,9 +234,9 @@ class Node(object):
 	def expandStruct(self, struct: list):
 		self.setStruct(self.struct + [struct])
 	def shrinkStruct(self, struct: list): # TODO: write method
-		pass
+		assert False, "Method shrinkStruct() is not yet functional"
 	def restrictStruct(self, struct: list): # TODO: write method
-		pass
+		assert False, "Method restrictStruct() is not yet functional"
 
 	clsInstances = classmethod(clsInstances)
 
@@ -269,7 +251,8 @@ class Root(Node):
 		self._name_ = f"<{name}>"  if name is not None else f"<root{Root._instances_}>"
 		Root._instances_ += 1
 	def __getattr__(self, attr):
-		if attr is "path": return self.name
+		if attr is "path": return self.getName()
+		elif attr is "indexes": return self.getIndexes()
 		elif attr is "struct": return self.getStruct()
 		elif attr is "progeny": return self.getProgeny()
 		elif attr is "degree": return self.getDegree()
@@ -277,10 +260,7 @@ class Root(Node):
 		elif attr is "depth": return self.getDepth()
 		elif attr is "root": return self.getRoot()
 		elif attr is "leaves": return self.getLeaves()
-		elif attr is "tree_name": return self.getName()
-		elif attr is "tree_struct": return self.getStruct()
-		elif attr is "tree_nodes": return self.getNodes()
-		elif attr is "tree_leaves": return self.getLeaves()
+		elif attr is "nodes": return self.getNodes()
 		else: raise AttributeError(f"Attribute \"{attr}\" not found for Root instance")
 
 	def clsInstances(cls):
@@ -305,8 +285,7 @@ class Root(Node):
 	def setName(self, name):
 		self._name_ = f"<{name}>"
 	def setParent(self, node=None):
-		if node is not None: raise ValueError("Root instances cannot have a parent, it must be None")
-		pass
+		if node is not None: raise ValueError("Root instances cannot have a parent, parent must be None")
 
 	def displayRoot(self):
 		print(self)
@@ -327,10 +306,6 @@ class Orph(Root):
 		Root.__init__(self, name=None, *children)
 		self._name_ = f"<{name}>"  if name is not None else f"<orph{Orph._instances_}>"
 		Orph._instances_ += 1
-	def __getattr__(self, attr):
-		try: return Root.__getattr__(self, attr)
-		except AttributeError:
-			raise AttributeError(f"Attribute \"{attr}\" not found for Orph instance")
 
 	def clsInstances(cls):
 		return Orph._instances_
@@ -338,6 +313,5 @@ class Orph(Root):
 
 def multidim_accessor(multilist: list, *indexes: int):
 	return multilist if not len(indexes) else multidim_accessor(multilist[indexes[0]], *indexes[1:])
-
 
 orph = Orph("orph")
